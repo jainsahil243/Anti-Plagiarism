@@ -1,0 +1,210 @@
+package hw3;
+
+import java.util.ArrayList;
+import java.util.Scanner;
+
+import api.Descriptor;
+import api.Dot;
+import api.Util;
+
+public class DotsGame {
+    private int r;
+    private int c;
+    private int score;
+    private Dot dot;
+    private Dot[][] dots;
+    private Generator gen;
+    private ArrayList<Descriptor> selectionList;
+    private Descriptor descriptor;
+
+    public DotsGame(int width, int height, Generator generator) {
+        r = width;
+        c = height;
+        gen = generator;
+        selectionList = new ArrayList<>();
+
+        // Constructs a game with a given number of columns and rows.
+        dots = new Dot[r][c];
+
+        // The dots in the initial grid are produced by the generator.
+        generator.initialize(dots);
+    }
+
+    public DotsGame(String[] data, Generator generator) {
+        r = data.length;
+        c = 0;
+
+        Scanner scanner = new Scanner(data[0]);
+
+        while(scanner.hasNext()) {
+            scanner.next();
+            c++;
+        }
+
+        dots = new Dot[r][c];
+        dots = Util.createGridFromString(data);
+    }
+
+    public Dot getDot(int row, int col) {
+        return dots[row][col];
+    }
+
+    /**
+     * Sets the Dot object at the given row and column.
+     *
+     * @param row row of the grid to be modified
+     * @param col column of the grid to be modified
+     * @param dot the given Dot object to set
+     */
+    public void setDot(int row, int col, Dot dot) {
+        dots[row][col] = dot;
+    }
+
+    public int getWidth() {
+        return c;
+    }
+
+    public int getHeight() {
+        return r;
+    }
+
+    /**
+     * Returns the current score for this game.
+     *
+     * @return score for this game
+     */
+    public int getScore() {
+        return score;
+    }
+
+    public void select(int row, int col) {
+        Descriptor _c = new Descriptor(row, col, getDot(row, col));
+
+        // Checks if the selectionList is empty and add the currently select dot to the selection list.
+        if (selectionList.isEmpty()) {
+            selectionList.add(_c);
+            return;
+        }
+
+        // Checks if the selectionList is a loop and checks if it is adjacent to the currently selected dot.
+        else if (_c.equals(selectionList.get(0)) && selectionList.size() >= 4 && isAdjacent((selectionList.get(selectionList.size() - 1)), _c)) {
+            // Checks to make sure that the values are not currently in the list.
+            if (selectionList.contains(_c)) selectionList.add(_c);
+        }
+
+        // Checks if the selectionList doesn't make a loop.
+        else if (!selectionList.contains(_c) && selectionList.get(0) != _c) {
+            Descriptor _p = selectionList.get(selectionList.size() - 1);
+            Dot _t = _p.getDot();
+
+            // Make sure types match and that it is adjacent.
+            if (dots[row][col].getType() == _t.getType()) {
+                if (isAdjacent(_p, _c)) selectionList.add(_c);
+            }
+        }
+    }
+
+    /**
+     * Returns a list of descriptors for currently selected dots.
+     *
+     * @return the selection list
+     */
+    public ArrayList<Descriptor> getSelectionList() {
+        return selectionList;
+    }
+
+    public ArrayList<Descriptor> release() {
+        ArrayList<Descriptor> nulledList = new ArrayList<>();
+        Dot type = selectionList.get(0).getDot();
+        Descriptor d1;
+        Descriptor d2;
+
+        // Checks if the selection list is a loop
+        if ((selectionList.get(0).equals(selectionList.size() - 1) && selectionList.size() >= 3)) {
+            selectionList.clear();
+
+            for (int i = 0; i < r; i++) {
+                for (int j = 0; j < c; j++) {
+                    if (dots[i][j].equals(type)) {
+                        d1 = new Descriptor(i, j, dots[i][j]);
+                        selectionList.add(d1);
+                    }
+                }
+            }
+        }
+
+        if (selectionList.size() > 1) {
+            while (selectionList.size() != 0) {
+                d2 = selectionList.get(0);
+                dots[d2.row()][d2.col()] = null;
+                nulledList.add(d2);
+                selectionList.remove(0);
+                score = score + 1;
+            }
+        }
+
+        else {
+            selectionList.remove(0);
+        }
+
+        return nulledList;
+    }
+
+    public ArrayList<Descriptor> collapseColumn(int col) {
+        // Preforms a simple array swap to drop the columns.
+        ArrayList<Descriptor> collapsedList = new ArrayList<>();
+        int c = r - 1;
+
+        // Iterates from the bottom of the column to the top.
+        for (int i = r - 1; i >= 0; i--) {
+            if (dots[i][col] != null) {
+                Descriptor d1 = new Descriptor(c, col, dots[i][col]);
+                d1.setPreviousRow(i);
+                Dot temp = dots[c][col];
+                dots[c][col] = dots[i][col];
+                dots[i][col] = temp;
+                c--;
+                d1.toString();
+                collapsedList.add(d1);
+            }
+        }
+
+        return collapsedList;
+    }
+
+    public ArrayList<Descriptor> fillColumn(int col) {
+        ArrayList<Descriptor> filledList = new ArrayList<>();
+
+        for (int i = 0; i < r; i++) {
+            // Checks for the null objects in the array.
+            if (dots[i][col] == null) {
+                // Fills the null elements in the array with random dots.
+                dots[i][col] = gen.generate();
+                Descriptor d1 = new Descriptor(i, col, dots[i][col]);
+                d1.setPreviousRow(-1);
+                filledList.add(d1);
+            }
+        }
+
+        // Returns the filled list with there new random dot values.
+        return filledList;
+    }
+
+    private boolean isAdjacent(Descriptor previous, Descriptor current) {
+        // Checks if the column is equal to the previous one.
+        boolean colEqual = previous.col() == current.col();
+        // Checks if the row is equal to the previous one.
+        boolean rowEqual = previous.row() == current.row();
+
+        // Checks if the |pRow - cRow| is only one element away.
+        boolean rowAdj = Math.abs(previous.row() - current.row()) == 1;
+        // Checks if the |pCol - cCol| is only one away.
+        boolean colAdj = Math.abs(previous.col() - current.col()) == 1;
+
+        // Determines whether not an dot is adjacent to another.
+        if (rowAdj && colEqual) return true;
+        if (colAdj && rowEqual) return true;
+
+        return false;
+    }
+}

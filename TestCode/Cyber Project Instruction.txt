@@ -1,0 +1,38 @@
+To Run Blockchain
+
+Open Terminal 1
+
+cd eth-voting-dapp
+truffle.cmd develop
+compile
+migrate --reset
+
+Open Terminal 2
+
+cd eth-voting-dapp
+npm run dev
+
+To Run Node Based Web Interface 
+
+Open Terminal 3
+
+cd C:\Program Files\MongoDB\Server\3.6\bin
+mongod
+
+Open Terminal 4
+
+cd C:\Program Files\MongoDB\Server\3.6\bin
+mongo
+
+Open Terminal 5
+
+cd Desktop
+cd cyberproject
+node app.js
+
+To Manage Datbase
+
+Open Studio 3T
+localhost:27017
+cryptouser
+users
